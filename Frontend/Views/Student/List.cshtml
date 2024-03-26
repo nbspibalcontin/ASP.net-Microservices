@@ -1,0 +1,90 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+@model List<Frontend.DTO.StudentDto>
+
+<h1>List of Students</h1>
+<a asp-controller="Student" asp-action="Add" class="btn btn-primary">Add</a>
+
+@{
+    string successMessage = ViewBag.SuccessMessage;
+
+    if (!string.IsNullOrEmpty(successMessage))
+    {
+        // Parse the JSON string to extract the message
+        dynamic messageObject = Newtonsoft.Json.JsonConvert.DeserializeObject(successMessage);
+        string message = messageObject.message;
+
+        <div class="alert alert-success mt-3">
+            @message
+        </div>
+    }
+}
+
+@if(Model == null)
+{
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger mt-3">
+            <p>@ViewBag.ErrorMessage</p>
+        </div>        
+    }
+}
+else
+{
+<table>
+    <thead>
+        <tr>
+            <th>Student ID</th>
+            <th>Firstname</th>
+            <th>Lastname</th>
+            <th>Age</th>
+            <th>Address</th>
+            <th>Phone Number</th>
+            <th>Email</th>
+            <th>Gender</th>
+            <th>Date of Birth</th>
+            <th>Status</th>
+            <th>Working</th>
+            <th>Image</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var student in Model)
+        {
+            <tr>
+                <td>@student.StudentId</td>
+                <td>@student.Firstname</td>
+                <td>@student.Lastname</td>
+                <td>@student.Age</td>
+                <td>@student.Address</td>
+                <td>@student.PhoneNumber</td>
+                <td>@student.Email</td>
+                <td>@student.Gender</td>
+                <td>@student.DateOfBirth</td>
+                <td>@student.Status</td>
+                <td>@student.Working</td>
+                <td>
+                    @if (!string.IsNullOrEmpty(student.ImageData))
+                    {
+                       <img src="data:image/png;base64,@(student.ImageData)" alt="Student Image" width="100" height="100" />
+                    }
+                </td>
+                <td>
+                    <a class="btn btn-primary" asp-controller="Student" asp-action="Edit" asp-route-studentId="@student.StudentId">Edit</a>
+                        <form method="post" asp-action="Delete" asp-route-id="@student.StudentId">
+                            <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('Are you sure to delete this record?')">
+                        Delete
+                    </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+}

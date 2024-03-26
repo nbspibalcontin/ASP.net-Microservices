@@ -1,0 +1,82 @@
+{
+  "Routes": [
+    {
+      "Comment": "Get all students",
+      "DownstreamPathTemplate": "/api/Student/list",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5038
+        }
+      ],
+      "UpstreamPathTemplate": "/GetAllStudent",
+      "UpstreamHttpMethod": [ "Get" ]
+    },
+    {
+      "Comment": "Get student by Student Id",
+      "DownstreamPathTemplate": "/api/Student/{studentId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5038
+        }
+      ],
+      "UpstreamPathTemplate": "/getStudentById/{studentId}",
+      "UpstreamHttpMethod": [ "Get" ]
+    },
+    {
+      "Comment": "Create Student",
+      "DownstreamPathTemplate": "/api/Student/create",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5038
+        }
+      ],
+      "UpstreamPathTemplate": "/create-student",
+      "UpstreamHttpMethod": [ "Post" ]
+    },
+    {
+      "Comment": "Create Student",
+      "DownstreamPathTemplate": "/api/Student/update/{studentId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5038
+        }
+      ],
+      "UpstreamPathTemplate": "/update-student/{studentId}",
+      "UpstreamHttpMethod": [ "Put" ]
+    },
+    {
+      "Comment": "Create Student",
+      "DownstreamPathTemplate": "/api/Student/delete/{studentId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5038
+        }
+      ],
+      "UpstreamPathTemplate": "/delete-student/{studentId}",
+      "UpstreamHttpMethod": [ "Delete" ]
+    },
+    {
+      "Comment": "This route is for FrontEnd",
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5248
+        }
+      ],
+      "UpstreamPathTemplate": "/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
+    }
+  ]
+}

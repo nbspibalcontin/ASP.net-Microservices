@@ -3,6 +3,8 @@ using Frontend.HttpServices.Implementation;
 using Frontend.HttpServices.Interface;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http.Resilience;
+using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
 

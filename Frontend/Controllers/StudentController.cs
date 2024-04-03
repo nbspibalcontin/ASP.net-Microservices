@@ -1,20 +1,26 @@
-﻿using Azure;
-using Frontend.DTO;
+﻿using Frontend.DTO;
 using Frontend.Exception;
+using Frontend.HttpServices.Implementation;
 using Frontend.HttpServices.Interface;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
+using System.Threading;
 
 namespace Frontend.Controllers
 {
     public class StudentController : Controller
     {
         private readonly IStudent _studentService;
+        private readonly TryService _tryService;
 
-        public StudentController(IStudent student)
+        public StudentController(IStudent student, TryService tryService)
         {
             _studentService = student;
+            _tryService = tryService;
         }
 
         [HttpGet]
@@ -36,6 +42,8 @@ namespace Frontend.Controllers
                 }
 
                 var response = await _studentService.CreateStudent(student);
+
+                Console.WriteLine("Message" + response);
 
                 TempData["SuccessMessage"] = response;
 
@@ -60,8 +68,23 @@ namespace Frontend.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> List()
+        public async Task<IActionResult> All()
         {
+            try
+            {
+                var response = await _tryService.GetAllStudent();
+
+                return Ok(response);
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> List()
+        {      
             try
             {
                 var studentList = await _studentService.ListOfStudent();
@@ -69,17 +92,6 @@ namespace Frontend.Controllers
                 ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
 
                 return View(studentList);
-            }
-            catch (HttpStatusCodeException ex)
-            {
-                ViewBag.ErrorMessage = ex.Message;
-                return View();
-            }
-            catch (BadGatewayException ex)
-            {
-                Response.StatusCode = 502;
-                ViewBag.ErrorMessage = ex.Message;
-                return View();
             }
             catch (ApplicationException ex)
             {
@@ -100,6 +112,8 @@ namespace Frontend.Controllers
             try
             {
                 var student = await _studentService.GetStudent(studentId);
+
+                Console.WriteLine(student);
 
                 return View(student);
             }
@@ -138,6 +152,7 @@ namespace Frontend.Controllers
 
                 var response = await _studentService.UpdateStudent(student);
 
+                Console.WriteLine(response);
                 TempData["SuccessMessage"] = response;
 
                 return RedirectToAction("list", "student");
@@ -169,6 +184,7 @@ namespace Frontend.Controllers
               
                 var response = await _studentService.DeleteStudent(studentId);
 
+                Console.WriteLine(response);
                 TempData["SuccessMessage"] = response;
 
                 return RedirectToAction("list", "student");

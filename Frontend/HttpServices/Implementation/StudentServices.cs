@@ -1,11 +1,11 @@
-﻿using Azure;
-using Frontend.DTO;
+﻿using Frontend.DTO;
 using Frontend.Exception;
 using Frontend.HttpServices.Interface;
-using Microsoft.SqlServer.Server;
 using Newtonsoft.Json;
-using System;
-using System.Net;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
+using System.Security.Policy;
 
 namespace Frontend.HttpServices.Implementation
 {
@@ -19,6 +19,24 @@ namespace Frontend.HttpServices.Implementation
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri("http://localhost:1000/");
         }
+
+        private static readonly AsyncRetryPolicy<HttpResponseMessage> retryPolicy =
+        Policy.HandleResult<HttpResponseMessage>(resp =>
+        (int)resp.StatusCode >= 500)
+        .WaitAndRetryAsync(4, retryAttempt =>
+        {
+            Console.WriteLine($"Attempt {retryAttempt} - Retrying due to error");
+            return TimeSpan.FromSeconds(5 + retryAttempt);
+        });
+
+        private static readonly AsyncCircuitBreakerPolicy<HttpResponseMessage> CBPolicy =
+            Policy.HandleResult<HttpResponseMessage>(
+                resp => (int)resp.StatusCode >= 500)
+            .AdvancedCircuitBreakerAsync(
+                0.5, //50%
+                TimeSpan.FromMinutes(1), // Duration to measure failure
+                10, //Request nb
+                TimeSpan.FromMinutes(2)); // Duration break
 
         public async Task<string> CreateStudent(StudentDto student)
         {
@@ -46,7 +64,13 @@ namespace Frontend.HttpServices.Implementation
                     formData.Add(fileContent, "File", student.File.FileName);
                 }
 
-                var response = await _httpClient.PostAsync("/create-student", formData);
+                if (CBPolicy.CircuitState == CircuitState.Open)
+                {
+                    throw new ApplicationException("Service is not available, Please try again later");
+                }
+
+                var response = await CBPolicy.ExecuteAsync(async () => await retryPolicy.ExecuteAsync(async () =>
+                await _httpClient.PostAsync("/create-student", formData)));
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -73,8 +97,15 @@ namespace Frontend.HttpServices.Implementation
         public async Task<StudentDto> GetStudent(Guid studentId)
         {
             try
-            {           
-                var response = await _httpClient.GetAsync($"/getStudentById/{studentId}");
+            {
+
+                if (CBPolicy.CircuitState == CircuitState.Open)
+                {
+                    throw new ApplicationException("Service is not available, Please try again later");
+                }
+
+                var response = await CBPolicy.ExecuteAsync(async () => await retryPolicy.ExecuteAsync(async () =>
+                await _httpClient.GetAsync($"/getStudentById/{studentId}")));
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -110,14 +141,18 @@ namespace Frontend.HttpServices.Implementation
         {
             try
             {
-                var response = await _httpClient.GetAsync("/GetAllStudent");
-
-                if (!response.IsSuccessStatusCode)
+                if (CBPolicy.CircuitState == CircuitState.Open)
                 {
-
-                    await HandleNonSuccessResponseAsync(response);
+                    throw new ApplicationException("Service is not available, Please try again later");
                 }
 
+                var response = await CBPolicy.ExecuteAsync(async () => await retryPolicy.ExecuteAsync(async () =>
+                await _httpClient.GetAsync("/GetAllStudent")));
+             
+                if (!response.IsSuccessStatusCode)
+                {
+                    await HandleNonSuccessResponseAsync(response);
+                }
 
                 var studentList = await response.Content.ReadFromJsonAsync<List<StudentDto>>();
 
@@ -129,14 +164,6 @@ namespace Frontend.HttpServices.Implementation
 
                 return studentList;
 
-            }
-            catch (HttpStatusCodeException)
-            {
-                throw;
-            }
-            catch (BadGatewayException)
-            {
-                throw;
             }
             catch (ApplicationException)
             {
@@ -174,7 +201,13 @@ namespace Frontend.HttpServices.Implementation
                     formData.Add(fileContent, "File", student.File.FileName);
                 }
 
-                var response = await _httpClient.PutAsync($"/update-student/{student.StudentId}", formData);
+                if (CBPolicy.CircuitState == CircuitState.Open)
+                {
+                    throw new ApplicationException("Service is not available, Please try again later");
+                }
+
+                var response = await CBPolicy.ExecuteAsync(async () => await retryPolicy.ExecuteAsync(async () =>
+                await _httpClient.PutAsync($"/update-student/{student.StudentId}", formData)));
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -187,7 +220,6 @@ namespace Frontend.HttpServices.Implementation
             {
                 throw;
             }
-
             catch (ApplicationException)
             {
                 throw;
@@ -203,7 +235,13 @@ namespace Frontend.HttpServices.Implementation
             try
             {
 
-                var response = await _httpClient.DeleteAsync($"/delete-student/{studentId}");
+                if (CBPolicy.CircuitState == CircuitState.Open)
+                {
+                    throw new ApplicationException("Service is not available, Please try again later");
+                }
+
+                var response = await CBPolicy.ExecuteAsync(async () => await retryPolicy.ExecuteAsync(async () =>
+                await _httpClient.DeleteAsync($"/delete-student/{studentId}")));
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -230,15 +268,10 @@ namespace Frontend.HttpServices.Implementation
         public async Task HandleNonSuccessResponseAsync(HttpResponseMessage response)
         {
             var responseBody = await response.Content.ReadAsStringAsync();
-            var statusCode = response.StatusCode;
-
-            if (response.StatusCode == HttpStatusCode.BadGateway) // Bad Gateway
-            {
-                throw new BadGatewayException("The server encountered a problem while receiving a response from an upstream server.");
-            }
+            var statusCode = response.StatusCode;   
+            var errorObject = JsonConvert.DeserializeObject<ErrorMessage>(responseBody);
 
             // Deserialize the response body to extract the errorMessage
-            var errorObject = JsonConvert.DeserializeObject<ErrorMessage>(responseBody);
             if (errorObject != null && !string.IsNullOrEmpty(errorObject.errorMessage))
             {
                 Console.WriteLine($"HTTP Error: {statusCode}, Error Message: {errorObject.errorMessage}");
@@ -247,8 +280,7 @@ namespace Frontend.HttpServices.Implementation
             }
             else
             {
-                Console.WriteLine($"HTTP Error: {statusCode}, No error message provided by the service.");
-                throw new ApplicationException(errorObject!.errorMessage);
+                throw new ApplicationException("Something error in the service.");
             }
         }
     }

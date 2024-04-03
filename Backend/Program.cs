@@ -19,6 +19,12 @@ builder.Services.AddDbContext<StudentDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
 builder.Services.AddScoped<IStudent, StudentServices>();
 
+builder.Services.AddOutputCache(opt =>
+{
+    opt.AddBasePolicy(x => x.Expire(TimeSpan.FromMinutes(15)));
+
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -33,5 +39,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseOutputCache();
 
 app.Run();

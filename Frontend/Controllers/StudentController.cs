@@ -15,12 +15,10 @@ namespace Frontend.Controllers
     public class StudentController : Controller
     {
         private readonly IStudent _studentService;
-        private readonly TryService _tryService;
 
-        public StudentController(IStudent student, TryService tryService)
+        public StudentController(IStudent student)
         {
             _studentService = student;
-            _tryService = tryService;
         }
 
         [HttpGet]
@@ -64,21 +62,6 @@ namespace Frontend.Controllers
             {
                 ViewBag.ErrorMessage = ex.Message;
                 return View(student);
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> All()
-        {
-            try
-            {
-                var response = await _tryService.GetAllStudent();
-
-                return Ok(response);
-            }
-            catch (System.Exception ex)
-            {
-                return BadRequest(ex.Message);
             }
         }
 

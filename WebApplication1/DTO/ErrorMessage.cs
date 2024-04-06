@@ -1,4 +1,4 @@
-﻿namespace Frontend.DTO
+﻿namespace WebApplication1.DTO
 {
     public class ErrorMessage
     {

@@ -72,7 +72,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5248
+          "Port": 5068
         }
       ],
       "UpstreamPathTemplate": "/{everything}",

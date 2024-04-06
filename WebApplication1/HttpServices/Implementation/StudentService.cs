@@ -1,33 +1,33 @@
-﻿using Frontend.DTO;
-using Frontend.Exception;
-using Frontend.HttpServices.Interface;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
-using System.Security.Policy;
+using WebApplication1.DTO;
+using WebApplication1.Exception;
+using WebApplication1.HttpServices.Interface;
 
-namespace Frontend.HttpServices.Implementation
+namespace WebApplication1.HttpServices.Implementation
 {
-    public class StudentServices : IStudent
+    public class StudentService : IStudent
     {
         private readonly HttpClient _httpClient;
 
-        public StudentServices(HttpClient httpClient)
+        public StudentService(HttpClient httpClient)
         {
 
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri("http://localhost:1000/");
         }
 
+
         private static readonly AsyncRetryPolicy<HttpResponseMessage> retryPolicy =
-        Policy.HandleResult<HttpResponseMessage>(resp =>
-        (int)resp.StatusCode >= 500)
-        .WaitAndRetryAsync(4, retryAttempt =>
-        {
-            Console.WriteLine($"Attempt {retryAttempt} - Retrying due to error");
-            return TimeSpan.FromSeconds(5 + retryAttempt);
-        });
+           Policy.HandleResult<HttpResponseMessage>(resp =>
+           (int)resp.StatusCode >= 500)
+           .WaitAndRetryAsync(4, retryAttempt =>
+           {
+               Console.WriteLine($"Attempt {retryAttempt} - Retrying due to error");
+               return TimeSpan.FromSeconds(5 + retryAttempt);
+           });
 
         private static readonly AsyncCircuitBreakerPolicy<HttpResponseMessage> CBPolicy =
             Policy.HandleResult<HttpResponseMessage>(
@@ -75,7 +75,7 @@ namespace Frontend.HttpServices.Implementation
                 if (!response.IsSuccessStatusCode)
                 {
                     await HandleNonSuccessResponseAsync(response);
-                }               
+                }
 
                 return await response.Content.ReadAsStringAsync();
             }
@@ -91,7 +91,7 @@ namespace Frontend.HttpServices.Implementation
             catch (System.Exception ex)
             {
                 throw new ApplicationException("Error when creating student." + ex);
-            }          
+            }
         }
 
         public async Task<StudentDto> GetStudent(Guid studentId)
@@ -148,7 +148,7 @@ namespace Frontend.HttpServices.Implementation
 
                 var response = await CBPolicy.ExecuteAsync(async () => await retryPolicy.ExecuteAsync(async () =>
                 await _httpClient.GetAsync("/GetAllStudent")));
-             
+
                 if (!response.IsSuccessStatusCode)
                 {
                     await HandleNonSuccessResponseAsync(response);
@@ -268,7 +268,7 @@ namespace Frontend.HttpServices.Implementation
         public async Task HandleNonSuccessResponseAsync(HttpResponseMessage response)
         {
             var responseBody = await response.Content.ReadAsStringAsync();
-            var statusCode = response.StatusCode;   
+            var statusCode = response.StatusCode;
             var errorObject = JsonConvert.DeserializeObject<ErrorMessage>(responseBody);
 
             // Deserialize the response body to extract the errorMessage

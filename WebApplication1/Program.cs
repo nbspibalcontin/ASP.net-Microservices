@@ -1,10 +1,8 @@
-using Frontend.Data;
-using Frontend.HttpServices.Implementation;
-using Frontend.HttpServices.Interface;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Http.Resilience;
-using Polly;
+using WebApplication1.Data;
+using WebApplication1.HttpServices.Implementation;
+using WebApplication1.HttpServices.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,8 +1,7 @@
-﻿using Frontend.DTO;
-using Frontend.Exception;
-using Frontend.HttpServices;
-using Frontend.HttpServices.Interface;
+﻿using WebApplication1.DTO;
+using WebApplication1.Exception;
 using Microsoft.AspNetCore.Mvc;
+using WebApplication1.HttpServices.Interface;
 
 namespace Frontend.Controllers
 {
@@ -31,6 +30,14 @@ namespace Frontend.Controllers
                 if (!ModelState.IsValid)
                 {
                     return View(student);
+                }
+
+                string cookieValue = HttpContext.Request.Cookies[".AspNetCore.Identity.Application"];
+
+                if (cookieValue == null)
+                {
+                    // Custom exception message when cookie is not found
+                    throw new Exception("The '.AspNetCore.Identity.Application' cookie is not found in the request.");
                 }
 
                 var response = await _studentService.CreateStudent(student);
@@ -64,6 +71,16 @@ namespace Frontend.Controllers
         {      
             try
             {
+                string? cookieValue = HttpContext.Request.Cookies[".AspNetCore.Identity.Application"];
+
+                if (cookieValue == null)
+                {
+                    // Custom exception message when cookie is not found
+                    throw new Exception("The '.AspNetCore.Identity.Application' cookie is not found in the request.");
+                }
+
+                Console.WriteLine(cookieValue);
+
                 var studentList = await _studentService.ListOfStudent();
 
                 ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;

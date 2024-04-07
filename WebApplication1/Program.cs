@@ -17,6 +17,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddScoped<IStudent, StudentService>();
+builder.Services.AddScoped<IAuthentication, AuthenticationServices>();
 builder.Services.AddHttpClient();
 
 var app = builder.Build();

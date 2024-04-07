@@ -1,5 +1,7 @@
 ﻿using Backend.Exception;
 using Backend.Services.Interface;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudentService.DTOs.Request;
@@ -10,7 +12,7 @@ namespace Backend.Controllers
 {
     [Route("api/[Controller]")]
     [ApiController]
-    public class StudentController : Controller
+    public class StudentController : ControllerBase
     {
         private readonly IStudent _studentService;
 
@@ -22,6 +24,7 @@ namespace Backend.Controllers
         //Create Student
         [HttpPost]
         [Route("create")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "AdminPolicy")]
         public async Task<IActionResult> CreateStudent([FromForm] StudentRequest studentRequest)
         {
             try
@@ -52,6 +55,7 @@ namespace Backend.Controllers
         //List of Student
         [HttpGet]
         [Route("list")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "AdminPolicy")]
         public async Task<IActionResult> ListStudent()
         {
             try
@@ -73,6 +77,7 @@ namespace Backend.Controllers
         //Student Details by Id
         [HttpGet]
         [Route("{studentId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "AdminPolicy")]
         public async Task<IActionResult> StudentById(Guid studentId)
         {
             try
@@ -94,6 +99,7 @@ namespace Backend.Controllers
         //Update Student Details
         [HttpPut]
         [Route("update/{studentId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "AdminPolicy")]
         public async Task<IActionResult> UpdateStudentDetails([FromForm] StudentRequest studentRequest, Guid studentId)
         {
             try
@@ -124,6 +130,7 @@ namespace Backend.Controllers
         //Delete Student
         [HttpDelete]
         [Route("delete/{studentId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "AdminPolicy")]
         public async Task<IActionResult> DeleteStudentById(Guid studentId)
         {
             try

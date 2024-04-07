@@ -32,14 +32,6 @@ namespace Frontend.Controllers
                     return View(student);
                 }
 
-                string cookieValue = HttpContext.Request.Cookies[".AspNetCore.Identity.Application"];
-
-                if (cookieValue == null)
-                {
-                    // Custom exception message when cookie is not found
-                    throw new Exception("The '.AspNetCore.Identity.Application' cookie is not found in the request.");
-                }
-
                 var response = await _studentService.CreateStudent(student);
 
                 Console.WriteLine("Message" + response);
@@ -71,16 +63,6 @@ namespace Frontend.Controllers
         {      
             try
             {
-                string? cookieValue = HttpContext.Request.Cookies[".AspNetCore.Identity.Application"];
-
-                if (cookieValue == null)
-                {
-                    // Custom exception message when cookie is not found
-                    throw new Exception("The '.AspNetCore.Identity.Application' cookie is not found in the request.");
-                }
-
-                Console.WriteLine(cookieValue);
-
                 var studentList = await _studentService.ListOfStudent();
 
                 ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;

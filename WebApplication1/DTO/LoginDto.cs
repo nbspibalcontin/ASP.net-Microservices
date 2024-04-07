@@ -1,13 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace AuthenticationService.DTO
+namespace WebApplication1.DTO
 {
-    public class RegisterDto
+    public class LoginDto
     {
         [Required(ErrorMessage = "Email is required")]
-        public string Email { get; set; }
+        public string? Firstname { get; set; }
 
         [Required(ErrorMessage = "Password is required")]
-        public string Password { get; set; }
+        public string? Password { get; set; }
     }
 }

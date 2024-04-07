@@ -36,48 +36,81 @@ namespace AuthenticationService.Services.Implementation
             {
                 var user = _mapper.Map<IdentityUser>(register);
 
-                IdentityUser userExist = await _userManager.FindByEmailAsync(register.Email);
+                var userExist = await _userManager.FindByEmailAsync(register.Email);
 
                 if (userExist != null)
                 {
                     throw new ApplicationException("User with the provided email already exists.");
                 }
 
-                //Check if the role is already exist
-                if (!await _roleManager.RoleExistsAsync(register.Role))
-                {
-                    await _roleManager.CreateAsync(new IdentityRole(register.Role));                   
-                }
-                else
-                {
-                    throw new RoleAlreadyExist("User with the provided email already exists.");
-                }
-
-                //Create User
+                // Create User
                 var result = await _userManager.CreateAsync(user, user.PasswordHash!);
-                //Assign User Role
-                await _userManager.AddToRoleAsync(user, register.Role);
 
-                if (!result.Succeeded) {
+                if (!result.Succeeded)
+                {
                     var errorMessages = string.Join(", ", result.Errors.Select(error => error.Description));
                     return new MessageResponse($"Failed to create user. Errors: {errorMessages}");
                 }
 
-                Claim[] userClaims =
-                    [
-                    new Claim(ClaimTypes.Email, register.Email),
-                    new Claim(ClaimTypes.Role, register.Role!)
-                    ];
+                // Check if the role is already exist, if not create it
+                if (!await _roleManager.RoleExistsAsync("admin"))
+                {
+                    await _roleManager.CreateAsync(new IdentityRole("admin"));
+                    // Assign "admin" Role to the First User
+                    await _userManager.AddToRoleAsync(user, "admin");
+                }
+                else
+                {
+                    // If "admin" role exists, assign "user" role to the user
+                    await _roleManager.CreateAsync(new IdentityRole("user"));
+                    await _userManager.AddToRoleAsync(user, "user");
+                }
+
+                var userRoles = await GetUserRole(register.Email);
+
+                // Add Claims
+                var userClaims = new Claim[]
+                {
+                  new Claim(ClaimTypes.Email, register.Email),
+                  new Claim(ClaimTypes.Role, userRoles)
+                };
 
                 await _userManager.AddClaimsAsync(user, userClaims);
 
-                return new MessageResponse("Registration Successfully");
+                return new MessageResponse("Registration Successful");
             }
-            catch (ApplicationException)
+            catch (System.Exception ex)
             {
-                throw;
-            }           
+                // Log exception
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                throw; // Rethrow the exception
+            }
         }
+
+        //Get User role
+        public async Task<string> GetUserRole(string userEmail)
+        {
+            var user = await _userManager.FindByEmailAsync(userEmail);
+
+            if (user == null)
+            {
+                throw new ApplicationException($"User with email {userEmail} not found.");
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            if (roles.Count > 0)
+            {
+                // If the user has roles, return the first one
+                return roles.First();
+            }
+            else
+            {
+                // If the user has no roles, return an empty string or handle it as needed
+                return string.Empty;
+            }
+        }
+
 
         //Login
         public async Task<string> Login(LoginDto login)
@@ -103,7 +136,7 @@ namespace AuthenticationService.Services.Implementation
                     throw new ApplicationException("Failed to login");
                 }
 
-                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
                 var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
                 // Generate JWT token

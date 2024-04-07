@@ -66,6 +66,19 @@
       "UpstreamHttpMethod": [ "Delete" ]
     },
     {
+      "Comment": "Authentication Login",
+      "DownstreamPathTemplate": "/api/Authentication/login",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5055
+        }
+      ],
+      "UpstreamPathTemplate": "/authentication/login",
+      "UpstreamHttpMethod": [ "Post" ]
+    },
+    {
       "Comment": "This route is for FrontEnd",
       "DownstreamPathTemplate": "/{everything}",
       "DownstreamScheme": "http",

@@ -2,6 +2,7 @@
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
+using System.Net.Http.Headers;
 using WebApplication1.DTO;
 using WebApplication1.Exception;
 using WebApplication1.HttpServices.Interface;
@@ -14,11 +15,9 @@ namespace WebApplication1.HttpServices.Implementation
 
         public StudentService(HttpClient httpClient)
         {
-
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri("http://localhost:1000/");
         }
-
 
         private static readonly AsyncRetryPolicy<HttpResponseMessage> retryPolicy =
            Policy.HandleResult<HttpResponseMessage>(resp =>
@@ -32,11 +31,7 @@ namespace WebApplication1.HttpServices.Implementation
         private static readonly AsyncCircuitBreakerPolicy<HttpResponseMessage> CBPolicy =
             Policy.HandleResult<HttpResponseMessage>(
                 resp => (int)resp.StatusCode >= 500)
-            .AdvancedCircuitBreakerAsync(
-                0.5, //50%
-                TimeSpan.FromMinutes(1), // Duration to measure failure
-                10, //Request nb
-                TimeSpan.FromMinutes(2)); // Duration break
+            .CircuitBreakerAsync(4, TimeSpan.FromMinutes(5)); 
 
         public async Task<string> CreateStudent(StudentDto student)
         {
@@ -145,6 +140,8 @@ namespace WebApplication1.HttpServices.Implementation
                 {
                     throw new ApplicationException("Service is not available, Please try again later");
                 }
+
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJhbGNvbnRpbmViZW5lemVyMDdAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoidXNlciIsImV4cCI6MTcxMjU3ODgxMCwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo1MDU1IiwiYXVkIjoiaHR0cDovL2xvY2FsaG9zdDo1MDU1In0.wm1gIdBbyAKe6MiZsl4eUFamXrSjs7g58Ki295OzhP4");
 
                 var response = await CBPolicy.ExecuteAsync(async () => await retryPolicy.ExecuteAsync(async () =>
                 await _httpClient.GetAsync("/GetAllStudent")));
@@ -271,8 +268,18 @@ namespace WebApplication1.HttpServices.Implementation
             var statusCode = response.StatusCode;
             var errorObject = JsonConvert.DeserializeObject<ErrorMessage>(responseBody);
 
-            // Deserialize the response body to extract the errorMessage
-            if (errorObject != null && !string.IsNullOrEmpty(errorObject.errorMessage))
+            if ((int)response.StatusCode == 401)
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+                throw new ApplicationException("You are not Authorized!");
+               
+            }
+            else if ((int)response.StatusCode == 403)
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+                throw new ApplicationException("You are not allowed to access this API!");
+            }
+            else if(errorObject != null && !string.IsNullOrEmpty(errorObject.errorMessage))
             {
                 Console.WriteLine($"HTTP Error: {statusCode}, Error Message: {errorObject.errorMessage}");
                 response.StatusCode = statusCode;
